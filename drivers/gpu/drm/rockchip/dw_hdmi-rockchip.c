@@ -642,6 +642,8 @@ static void dw_hdmi_rockchip_unbind(struct device *dev, struct device *master,
 	dw_hdmi_unbind(hdmi->hdmi);
 	clk_disable_unprepare(hdmi->ref_clk);
 
+	drm_encoder_cleanup(&hdmi->encoder.encoder);
+
 	regulator_disable(hdmi->avdd_1v8);
 	regulator_disable(hdmi->avdd_0v9);
 }
