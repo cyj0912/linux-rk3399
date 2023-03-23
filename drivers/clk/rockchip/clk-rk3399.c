@@ -217,19 +217,19 @@ PNAME(mux_clk_testout2_2io_p)	= { "clk_testout2", "clk_32k_suspend_pmu" };
 
 static struct rockchip_pll_clock rk3399_pll_clks[] __initdata = {
 	[lpll] = PLL(pll_rk3399, PLL_APLLL, "lpll", mux_pll_p, 0, RK3399_PLL_CON(0),
-		     RK3399_PLL_CON(3), 8, 31, 0, rk3399_pll_rates),
+		     RK3399_PLL_CON(3), 8, 31, ROCKCHIP_PLL_DYNAMIC, NULL),
 	[bpll] = PLL(pll_rk3399, PLL_APLLB, "bpll", mux_pll_p, 0, RK3399_PLL_CON(8),
-		     RK3399_PLL_CON(11), 8, 31, 0, rk3399_pll_rates),
+		     RK3399_PLL_CON(11), 8, 31, ROCKCHIP_PLL_DYNAMIC, NULL),
 	[dpll] = PLL(pll_rk3399, PLL_DPLL, "dpll", mux_pll_p, 0, RK3399_PLL_CON(16),
 		     RK3399_PLL_CON(19), 8, 31, 0, NULL),
 	[cpll] = PLL(pll_rk3399, PLL_CPLL, "cpll", mux_pll_p, 0, RK3399_PLL_CON(24),
-		     RK3399_PLL_CON(27), 8, 31, ROCKCHIP_PLL_SYNC_RATE, rk3399_pll_rates),
+		     RK3399_PLL_CON(27), 8, 31, ROCKCHIP_PLL_DYNAMIC, NULL),
 	[gpll] = PLL(pll_rk3399, PLL_GPLL, "gpll", mux_pll_p, 0, RK3399_PLL_CON(32),
-		     RK3399_PLL_CON(35), 8, 31, ROCKCHIP_PLL_SYNC_RATE, rk3399_pll_rates),
+		     RK3399_PLL_CON(35), 8, 31, ROCKCHIP_PLL_DYNAMIC, NULL),
 	[npll] = PLL(pll_rk3399, PLL_NPLL, "npll",  mux_pll_p, 0, RK3399_PLL_CON(40),
-		     RK3399_PLL_CON(43), 8, 31, ROCKCHIP_PLL_SYNC_RATE, rk3399_pll_rates),
+		     RK3399_PLL_CON(43), 8, 31, ROCKCHIP_PLL_DYNAMIC, NULL),
 	[vpll] = PLL(pll_rk3399, PLL_VPLL, "vpll",  mux_pll_p, 0, RK3399_PLL_CON(48),
-		     RK3399_PLL_CON(51), 8, 31, ROCKCHIP_PLL_SYNC_RATE, rk3399_pll_rates),
+		     RK3399_PLL_CON(51), 8, 31, ROCKCHIP_PLL_DYNAMIC, NULL),
 };
 
 static struct rockchip_pll_clock rk3399_pmu_pll_clks[] __initdata = {
