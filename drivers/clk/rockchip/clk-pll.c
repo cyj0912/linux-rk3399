@@ -825,6 +825,105 @@ static int rockchip_rk3399_pll_init(struct clk_hw *hw)
 	return 0;
 }
 
+static void rockchip_rk3399_pll_calc(unsigned long fref, unsigned long ftarget,
+				     struct rockchip_pll_rate_table *rate)
+{
+	/*
+	 * The formula is
+	 * fref / refdiv * fbdiv = fvco
+	 * fvco / postdiv1 / postdiv2 = ftarget
+	 */
+	unsigned long fvco;
+	unsigned long best_refdiv, best_fbdiv;
+	unsigned long best_error = ULONG_MAX;
+	unsigned long fout, error;
+	unsigned long FVCO_MIN = 800000;
+	const unsigned int POSTDIV_MAX = 7;
+	const unsigned int REFDIV_MAX = 63;
+	const unsigned int FBDIV_MIN = 16;
+	const unsigned int FBDIV_MAX = 2400;
+
+	fref /= 1000;
+	ftarget /= 1000;
+
+	/* Work backwards, determine fvco first and the post dividers */
+	if (ftarget >= FVCO_MIN) {
+		rate->postdiv1 = 1;
+		rate->postdiv2 = 1;
+		fvco = ftarget;
+	} else {
+		rate->postdiv1 = DIV_ROUND_UP(FVCO_MIN, ftarget);
+		rate->postdiv2 = 1;
+		if (rate->postdiv1 > POSTDIV_MAX) {
+			rate->postdiv2 =
+				DIV_ROUND_UP(rate->postdiv1, POSTDIV_MAX);
+			rate->postdiv1 = POSTDIV_MAX;
+		}
+		fvco = ftarget * rate->postdiv1 * rate->postdiv2;
+	}
+
+	/* Determine refdiv and fbdiv */
+	for (rate->refdiv = 1; rate->refdiv <= REFDIV_MAX && best_error;
+	     rate->refdiv++) {
+		rate->fbdiv = fvco / (fref / rate->refdiv);
+		if (rate->fbdiv < FBDIV_MIN || rate->fbdiv > FBDIV_MAX)
+			continue;
+
+		fout = fref / rate->refdiv * rate->fbdiv / rate->postdiv1 /
+		       rate->postdiv2;
+		error = fout < ftarget ? ftarget - fout : fout - ftarget;
+		if (error < best_error) {
+			best_error = error;
+			best_refdiv = rate->refdiv;
+			best_fbdiv = rate->fbdiv;
+		}
+
+		fout = fref / rate->refdiv * (rate->fbdiv + 1) /
+		       rate->postdiv1 / rate->postdiv2;
+		error = fout < ftarget ? ftarget - fout : fout - ftarget;
+		if (error < best_error) {
+			best_error = error;
+			best_refdiv = rate->refdiv;
+			best_fbdiv = rate->fbdiv + 1;
+		}
+	}
+	rate->refdiv = best_refdiv;
+	rate->fbdiv = best_fbdiv;
+
+	rate->dsmpd = 1;
+	rate->frac = 0;
+	rate->rate = fref / rate->refdiv * rate->fbdiv / rate->postdiv1 /
+		     rate->postdiv2 * 1000;
+}
+
+static long rockchip_rk3399_pll_dynamic_round_rate(struct clk_hw *hw,
+						   unsigned long rate,
+						   unsigned long *parent_rate)
+{
+	struct rockchip_pll_rate_table rate_params;
+
+	pr_debug("Rounding rate %lu with parent rate %lu\n", rate,
+		 *parent_rate);
+	rockchip_rk3399_pll_calc(*parent_rate, rate, &rate_params);
+	return rate_params.rate;
+}
+
+static int rockchip_rk3399_pll_dynamic_set_rate(struct clk_hw *hw,
+						unsigned long rate,
+						unsigned long parent_rate)
+{
+	struct rockchip_clk_pll *pll = to_rockchip_clk_pll(hw);
+	struct rockchip_pll_rate_table rate_params;
+
+	pr_debug("%s: changing %s to %lu with a parent rate of %lu\n", __func__,
+		 __clk_get_name(hw->clk), rate, parent_rate);
+
+	/* Compute PLL parameters from rate */
+	rockchip_rk3399_pll_calc(parent_rate, rate, &rate_params);
+
+	return rockchip_rk3399_pll_set_params(pll, &rate_params);
+}
+
 static const struct clk_ops rockchip_rk3399_pll_clk_norate_ops = {
 	.recalc_rate = rockchip_rk3399_pll_recalc_rate,
 	.enable = rockchip_rk3399_pll_enable,
@@ -840,6 +939,16 @@ static const struct clk_ops rockchip_rk3399_pll_clk_ops = {
 	.disable = rockchip_rk3399_pll_disable,
 	.is_enabled = rockchip_rk3399_pll_is_enabled,
 	.init = rockchip_rk3399_pll_init,
+};
+
+/* Dynamic calculation PLL without rate table */
+static const struct clk_ops rockchip_rk3399_pll_clk_dynamic_ops = {
+	.recalc_rate = rockchip_rk3399_pll_recalc_rate,
+	.round_rate = rockchip_rk3399_pll_dynamic_round_rate,
+	.set_rate = rockchip_rk3399_pll_dynamic_set_rate,
+	.enable = rockchip_rk3399_pll_enable,
+	.disable = rockchip_rk3399_pll_disable,
+	.is_enabled = rockchip_rk3399_pll_is_enabled,
 };
 
 /*
@@ -1160,7 +1269,9 @@ struct clk *rockchip_clk_register_pll(struct rockchip_clk_provider *ctx,
 			init.ops = &rockchip_rk3066_pll_clk_ops;
 		break;
 	case pll_rk3399:
-		if (!pll->rate_table)
+		if (clk_pll_flags & ROCKCHIP_PLL_DYNAMIC)
+			init.ops = &rockchip_rk3399_pll_clk_dynamic_ops;
+		else if (!pll->rate_table)
 			init.ops = &rockchip_rk3399_pll_clk_norate_ops;
 		else
 			init.ops = &rockchip_rk3399_pll_clk_ops;
