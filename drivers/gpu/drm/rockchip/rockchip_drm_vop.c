@@ -1207,11 +1207,15 @@ static bool vop_crtc_mode_fixup(struct drm_crtc *crtc,
 	 * 4. Store the rounded up rate so that we don't need to worry about
 	 *    this in the actual clk_set_rate().
 	 */
-	rate = clk_round_rate(vop->dclk, adjusted_mode->clock * 1000);
-	if (rate / 1000 != adjusted_mode->clock)
-		rate = clk_round_rate(vop->dclk,
-				      adjusted_mode->clock * 1000 + 999);
-	adjusted_mode->clock = DIV_ROUND_UP(rate, 1000);
+	pr_info("adjusted_mode->clock = %d\n", adjusted_mode->clock);
+	// rate = clk_round_rate(vop->dclk, adjusted_mode->clock * 1000);
+	// if (rate / 1000 != adjusted_mode->clock)
+	// 	rate = clk_round_rate(vop->dclk,
+	// 			      adjusted_mode->clock * 1000 + 999);
+	// adjusted_mode->clock = DIV_ROUND_UP(rate, 1000);
+	// adjusted_mode->clock /= 2;
+	pr_info("adjusted_mode->clock = %d (after)\n",
+				     adjusted_mode->clock);
 
 	return true;
 }
@@ -1865,6 +1869,8 @@ static int vop_create_crtc(struct vop *vop)
 					&vop_crtc_funcs, NULL);
 	if (ret)
 		goto err_cleanup_planes;
+
+	dev_info(dev, "CRTC %u\n", crtc->base.id);
 
 	drm_crtc_helper_add(crtc, &vop_crtc_helper_funcs);
 	if (vop->lut_regs) {

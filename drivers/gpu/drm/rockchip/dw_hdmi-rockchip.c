@@ -160,6 +160,36 @@ static const struct dw_hdmi_mpll_config rockchip_mpll_cfg[] = {
 			{ 0x214c, 0x0003},
 			{ 0x4064, 0x0003}
 		},
+	},  {
+		184000000, {
+			{ 0x0051, 0x0002 },
+			{ 0x214c, 0x0003 },
+			{ 0x4064, 0x0003 },
+		},
+	},  {
+		226666000, {
+			{ 0x0040, 0x0003 },
+			{ 0x214c, 0x0003 },
+			{ 0x4064, 0x0003 },
+		},
+	},  {
+		272000000, {
+			{ 0x0040, 0x0003 },
+			{ 0x214c, 0x0003 },
+			{ 0x5a64, 0x0003 },
+		},
+	},  {
+		340000000, {
+			{ 0x0040, 0x0003 },
+			{ 0x3b4c, 0x0003 },
+			{ 0x5a64, 0x0003 },
+		},
+	},  {
+		600000000, {
+			{ 0x0041, 0x0003 },
+			{ 0x3b4d, 0x0003 },
+			{ 0x5a65, 0x0003 },
+		},
 	}, {
 		~0UL, {
 			{ 0x00a0, 0x000a },
@@ -186,6 +216,8 @@ static const struct dw_hdmi_curr_ctrl rockchip_cur_ctr[] = {
 	}, {
 		148500000, { 0x0000, 0x0038, 0x0038 },
 	}, {
+		600000000, { 0x0000, 0x0000, 0x0000 },
+	}, {
 		~0UL,      { 0x0000, 0x0000, 0x0000},
 	}
 };
@@ -195,6 +227,7 @@ static const struct dw_hdmi_phy_config rockchip_phy_config[] = {
 	{ 74250000,  0x8009, 0x0004, 0x0272},
 	{ 148500000, 0x802b, 0x0004, 0x028d},
 	{ 297000000, 0x8039, 0x0005, 0x028d},
+	{ 594000000, 0x8039, 0x0000, 0x019d},
 	{ ~0UL,	     0x0000, 0x0000, 0x0000}
 };
 
@@ -251,12 +284,13 @@ dw_hdmi_rockchip_mode_valid(struct dw_hdmi *hdmi, void *data,
 	int i;
 
 	for (i = 0; mpll_cfg[i].mpixelclock != (~0UL); i++) {
-		if (pclk == mpll_cfg[i].mpixelclock) {
+		if (pclk <= mpll_cfg[i].mpixelclock) {
 			valid = true;
 			break;
 		}
 	}
 
+	pr_info("Checking mode %dx%d %dMHz: %d\n", mode->hdisplay, mode->vdisplay, mode->clock, valid);
 	return (valid) ? MODE_OK : MODE_BAD;
 }
 
@@ -278,7 +312,12 @@ static void dw_hdmi_rockchip_encoder_mode_set(struct drm_encoder *encoder,
 {
 	struct rockchip_hdmi *hdmi = to_rockchip_hdmi(encoder);
 
+	unsigned long rate = clk_get_rate(hdmi->ref_clk);
+	pr_info("Current rate is %lu\n", rate);
 	clk_set_rate(hdmi->ref_clk, adj_mode->clock * 1000);
+	pr_info("Setting rate to %d\n", adj_mode->clock * 1000);
+	rate = clk_get_rate(hdmi->ref_clk);
+	pr_info("After set rate is %lu\n", rate);
 }
 
 static void dw_hdmi_rockchip_encoder_enable(struct drm_encoder *encoder)
@@ -486,6 +525,7 @@ static const struct dw_hdmi_plat_data rk3399_hdmi_drv_data = {
 	.phy_config = rockchip_phy_config,
 	.phy_data = &rk3399_chip_data,
 	.use_drm_infoframe = true,
+	.ycbcr_420_allowed = true,
 };
 
 static struct rockchip_hdmi_chip_data rk3568_chip_data = {

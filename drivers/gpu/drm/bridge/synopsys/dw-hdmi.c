@@ -2587,11 +2587,13 @@ static int dw_hdmi_connector_create(struct dw_hdmi *hdmi)
 	struct cec_connector_info conn_info;
 	struct cec_notifier *notifier;
 
+	pr_info("hdmi->version = %x\n", hdmi->version);
 	if (hdmi->version >= 0x200a)
 		connector->ycbcr_420_allowed =
 			hdmi->plat_data->ycbcr_420_allowed;
 	else
 		connector->ycbcr_420_allowed = false;
+	pr_info("connector->ycbcr_420_allowed = %d\n", connector->ycbcr_420_allowed);
 
 	connector->interlace_allowed = 1;
 	connector->polled = DRM_CONNECTOR_POLL_HPD;
@@ -2898,7 +2900,7 @@ static int dw_hdmi_bridge_atomic_check(struct drm_bridge *bridge,
 	hdmi->hdmi_data.enc_in_bus_format =
 			bridge_state->input_bus_cfg.format;
 
-	dev_dbg(hdmi->dev, "input format 0x%04x, output format 0x%04x\n",
+	dev_info(hdmi->dev, "input format 0x%04x, output format 0x%04x\n",
 		bridge_state->input_bus_cfg.format,
 		bridge_state->output_bus_cfg.format);
 

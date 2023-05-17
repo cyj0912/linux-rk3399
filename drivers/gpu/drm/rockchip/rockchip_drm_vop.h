@@ -277,6 +277,9 @@ struct vop_data {
 #define ROCKCHIP_OUT_MODE_P666	1
 #define ROCKCHIP_OUT_MODE_P565	2
 /* for use special outface */
+#define ROCKCHIP_OUT_MODE_DP_YUV422	12
+#define ROCKCHIP_OUT_MODE_DP_YUV420	13
+#define ROCKCHIP_OUT_MODE_HDMI_YUV420	14
 #define ROCKCHIP_OUT_MODE_AAAA	15
 
 /* output flags */
